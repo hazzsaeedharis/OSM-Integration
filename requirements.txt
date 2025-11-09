@@ -1,0 +1,18 @@
+# OSM Business Finder - Python Dependencies
+
+# Web Framework
+streamlit>=1.28.0
+
+# Map Visualization
+folium>=0.15.0
+streamlit-folium>=0.15.0
+
+# Data Processing
+pandas>=2.1.0
+
+# HTTP Requests (for geocoding)
+requests>=2.31.0
+
+# Database
+# No additional package needed - sqlite3 is built into Python
+
