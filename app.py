@@ -10,6 +10,7 @@ import sqlite3
 import json
 from pathlib import Path
 import pandas as pd
+from folium.plugins import Fullscreen
 
 # Page configuration
 st.set_page_config(
@@ -18,6 +19,81 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Translation dictionary
+TRANSLATIONS = {
+    'en': {
+        'title': '🗺️ Berlin Business Finder',
+        'subtitle': 'Find local businesses on OpenStreetMap',
+        'search_filters': '🔍 Search & Filters',
+        'businesses': 'Businesses',
+        'with_coordinates': 'With Coordinates',
+        'business_name': 'Business Name',
+        'search_placeholder': 'e.g. Hairdresser, Restaurant...',
+        'category': 'Category',
+        'all': 'All',
+        'city_district': 'City/District',
+        'max_results': 'Max Results',
+        'search_button': '🔍 Search',
+        'hints': '💡 Hints',
+        'hint_zoom': '**Zoom map**: Mouse wheel or +/- buttons',
+        'hint_marker': '**Click marker**: Show details',
+        'hint_pan': '**Pan map**: Drag & Drop',
+        'map_title': '📍 Map',
+        'results_title': '📋 Results',
+        'searching': 'Searching businesses...',
+        'showing_businesses': '📊 Showing {count} businesses on map',
+        'no_results': 'No businesses found. Please adjust your search criteria.',
+        'more_businesses': '+ {count} more businesses on map',
+        'search_prompt': 'Use the search filters on the left to find businesses.',
+        'footer_data': 'Data from Gelbe Seiten | Maps © OpenStreetMap',
+        'footer_version': 'Berlin Business Finder v1.0',
+        'language': '🌐 Language',
+        'fullscreen_map': '🔍 View Fullscreen Map',
+        'exit_fullscreen': '❌ Exit Fullscreen',
+    },
+    'de': {
+        'title': '🗺️ Berlin Business Finder',
+        'subtitle': 'Finden Sie lokale Unternehmen auf OpenStreetMap',
+        'search_filters': '🔍 Suche & Filter',
+        'businesses': 'Unternehmen',
+        'with_coordinates': 'Mit Koordinaten',
+        'business_name': 'Unternehmensname',
+        'search_placeholder': 'z.B. Friseur, Restaurant...',
+        'category': 'Kategorie',
+        'all': 'Alle',
+        'city_district': 'Stadt/Bezirk',
+        'max_results': 'Max. Ergebnisse',
+        'search_button': '🔍 Suchen',
+        'hints': '💡 Hinweise',
+        'hint_zoom': '**Karte zoomen**: Mausrad oder +/- Buttons',
+        'hint_marker': '**Marker klicken**: Details anzeigen',
+        'hint_pan': '**Karte verschieben**: Drag & Drop',
+        'map_title': '📍 Karte',
+        'results_title': '📋 Ergebnisse',
+        'searching': 'Suche Unternehmen...',
+        'showing_businesses': '📊 Zeige {count} Unternehmen auf der Karte',
+        'no_results': 'Keine Unternehmen gefunden. Bitte passen Sie Ihre Suchkriterien an.',
+        'more_businesses': '+ {count} weitere Unternehmen auf der Karte',
+        'search_prompt': 'Nutzen Sie die Suchfilter links, um Unternehmen zu finden.',
+        'footer_data': 'Daten aus Gelbe Seiten | Karten von © OpenStreetMap',
+        'footer_version': 'Berlin Business Finder v1.0',
+        'language': '🌐 Sprache',
+        'fullscreen_map': '🔍 Vollbild Karte',
+        'exit_fullscreen': '❌ Vollbild beenden',
+    }
+}
+
+# Initialize session state for language (default English)
+if 'language' not in st.session_state:
+    st.session_state.language = 'en'
+
+if 'fullscreen' not in st.session_state:
+    st.session_state.fullscreen = False
+
+def t(key):
+    """Get translation for current language"""
+    return TRANSLATIONS[st.session_state.language].get(key, key)
 
 # Custom CSS for Gelbe Seiten-inspired theme
 st.markdown("""
@@ -235,7 +311,7 @@ def search_businesses(search_term="", category="", city="", limit=100):
     return businesses
 
 def create_map(businesses, center_lat=52.5200, center_lon=13.4050, zoom=11):
-    """Create Folium map with business markers"""
+    """Create Folium map with business markers and fullscreen capability"""
     
     # Create base map
     m = folium.Map(
@@ -245,31 +321,66 @@ def create_map(businesses, center_lat=52.5200, center_lon=13.4050, zoom=11):
         control_scale=True
     )
     
+    # Add fullscreen button
+    Fullscreen(
+        position='topright',
+        title='Enter fullscreen',
+        title_cancel='Exit fullscreen',
+        force_separate_button=True
+    ).add_to(m)
+    
     # Add markers for businesses
     for business in businesses:
-        # Create popup content
+        # Create enhanced popup content
         categories_html = ''.join([
-            f'<span style="background:#FFD700;padding:2px 8px;border-radius:10px;margin:2px;display:inline-block;font-size:11px;">{cat}</span>'
+            f'<span style="background:#FFD700;padding:4px 10px;border-radius:12px;margin:2px;display:inline-block;font-size:12px;font-weight:600;color:#333;">{cat}</span>'
             for cat in business['categories'][:3]
         ])
         
+        # Enhanced popup with better styling
         popup_html = f'''
-        <div style="width:250px;font-family:Arial,sans-serif;">
-            <h4 style="color:#333;margin:0 0 8px 0;font-size:14px;">{business['name']}</h4>
-            <div style="margin:8px 0;">{categories_html}</div>
-            <p style="color:#666;font-size:12px;margin:4px 0;">
-                📍 {business['postal_code']} {business['city']}
-            </p>
+        <div style="width:280px;font-family:Arial,sans-serif;padding:8px;">
+            <h3 style="color:#333;margin:0 0 12px 0;font-size:16px;font-weight:700;border-bottom:2px solid #FFD700;padding-bottom:8px;">
+                {business['name']}
+            </h3>
+            
+            <div style="margin:10px 0;">
+                {categories_html}
+            </div>
+            
+            <div style="background:#f9f9f9;padding:10px;border-radius:8px;margin:10px 0;">
+                <p style="color:#666;font-size:13px;margin:4px 0;line-height:1.6;">
+                    <strong>📍 Location:</strong><br/>
+                    {business['postal_code']} {business['city']}
+                </p>
+                <p style="color:#666;font-size:13px;margin:8px 0 4px 0;line-height:1.6;">
+                    <strong>🗺️ Coordinates:</strong><br/>
+                    {business['lat']:.6f}, {business['lon']:.6f}
+                </p>
+            </div>
+            
+            <div style="margin-top:12px;">
+                <a href="https://www.google.com/maps/search/?api=1&query={business['lat']},{business['lon']}" 
+                   target="_blank" 
+                   style="display:inline-block;background:#FFD700;color:#333;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:600;font-size:12px;margin-right:5px;">
+                    🚗 Get Directions
+                </a>
+                <a href="https://www.google.com/search?q={business['name']}+{business['postal_code']}+{business['city']}" 
+                   target="_blank" 
+                   style="display:inline-block;background:#FFC107;color:#333;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:600;font-size:12px;">
+                    🔍 Search
+                </a>
+            </div>
         </div>
         '''
         
         # Create tooltip
-        tooltip = business['name']
+        tooltip = f"{business['name']} - {business['city']}"
         
         # Add marker
         folium.Marker(
             location=[business['lat'], business['lon']],
-            popup=folium.Popup(popup_html, max_width=300),
+            popup=folium.Popup(popup_html, max_width=320),
             tooltip=tooltip,
             icon=folium.Icon(color='orange', icon='info-sign')
         ).add_to(m)
@@ -278,16 +389,36 @@ def create_map(businesses, center_lat=52.5200, center_lon=13.4050, zoom=11):
 
 # Main app
 def main():
-    # Header
-    st.markdown("""
-    <div class="main-header">
-        <h1>🗺️ Berlin Business Finder</h1>
-        <p>Finden Sie lokale Unternehmen auf OpenStreetMap</p>
-    </div>
-    """, unsafe_allow_html=True)
+    # Language selector in top right (using columns)
+    col_header, col_lang = st.columns([6, 1])
     
-    # Sidebar
-    st.sidebar.title("🔍 Suche & Filter")
+    with col_lang:
+        st.markdown("<div style='padding-top:20px;'>", unsafe_allow_html=True)
+        lang_option = st.selectbox(
+            t('language'),
+            options=['🇬🇧 English', '🇩🇪 Deutsch'],
+            index=0 if st.session_state.language == 'en' else 1,
+            label_visibility='collapsed'
+        )
+        
+        # Update language in session state
+        if '🇬🇧' in lang_option:
+            st.session_state.language = 'en'
+        else:
+            st.session_state.language = 'de'
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    with col_header:
+        # Header with translation
+        st.markdown(f"""
+        <div class="main-header">
+            <h1>{t('title')}</h1>
+            <p>{t('subtitle')}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Sidebar with translations
+    st.sidebar.title(t('search_filters'))
     
     # Statistics in sidebar
     stats = get_statistics()
@@ -297,14 +428,14 @@ def main():
     st.sidebar.markdown(f"""
     <div class="stats-box">
         <div class="stat-value">{total:,}</div>
-        <div class="stat-label">Unternehmen</div>
+        <div class="stat-label">{t('businesses')}</div>
     </div>
     """, unsafe_allow_html=True)
     
     st.sidebar.markdown(f"""
     <div class="stats-box">
         <div class="stat-value">{geocoded:,}</div>
-        <div class="stat-label">Mit Koordinaten</div>
+        <div class="stat-label">{t('with_coordinates')}</div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -312,29 +443,29 @@ def main():
     
     # Search input
     search_term = st.sidebar.text_input(
-        "Unternehmensname",
-        placeholder="z.B. Friseur, Restaurant..."
+        t('business_name'),
+        placeholder=t('search_placeholder')
     )
     
     # Category filter
     all_categories = get_all_categories()
     category = st.sidebar.selectbox(
-        "Kategorie",
-        options=["Alle"] + all_categories
+        t('category'),
+        options=[t('all')] + all_categories
     )
-    category = "" if category == "Alle" else category
+    category = "" if category == t('all') else category
     
     # City filter
     all_cities = get_all_cities()
     city = st.sidebar.selectbox(
-        "Stadt/Bezirk",
-        options=["Alle"] + all_cities
+        t('city_district'),
+        options=[t('all')] + all_cities
     )
-    city = "" if city == "Alle" else city
+    city = "" if city == t('all') else city
     
     # Results limit
     limit = st.sidebar.slider(
-        "Max. Ergebnisse",
+        t('max_results'),
         min_value=10,
         max_value=500,
         value=100,
@@ -342,25 +473,25 @@ def main():
     )
     
     # Search button
-    search_button = st.sidebar.button("🔍 Suchen", use_container_width=True)
+    search_button = st.sidebar.button(t('search_button'), use_container_width=True)
     
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 💡 Hinweise")
-    st.sidebar.markdown("""
-    - **Karte zoomen**: Mausrad oder +/- Buttons
-    - **Marker klicken**: Details anzeigen
-    - **Karte verschieben**: Drag & Drop
+    st.sidebar.markdown(f"### {t('hints')}")
+    st.sidebar.markdown(f"""
+    - {t('hint_zoom')}
+    - {t('hint_marker')}
+    - {t('hint_pan')}
     """)
     
     # Main content area
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("📍 Karte")
+        st.subheader(t('map_title'))
         
         # Perform search
         if 'businesses' not in st.session_state or search_button:
-            with st.spinner('Suche Unternehmen...'):
+            with st.spinner(t('searching')):
                 businesses = search_businesses(search_term, category, city, limit)
                 st.session_state.businesses = businesses
         else:
@@ -380,9 +511,9 @@ def main():
             m = create_map(businesses, avg_lat, avg_lon, zoom)
             st_folium(m, width=None, height=600)
             
-            st.info(f"📊 Zeige {len(businesses)} Unternehmen auf der Karte")
+            st.info(t('showing_businesses').format(count=len(businesses)))
         else:
-            st.warning("Keine Unternehmen gefunden. Bitte passen Sie Ihre Suchkriterien an.")
+            st.warning(t('no_results'))
             
             # Show default map
             m = folium.Map(
@@ -390,10 +521,17 @@ def main():
                 zoom_start=11,
                 tiles='OpenStreetMap'
             )
+            # Add fullscreen to default map too
+            Fullscreen(
+                position='topright',
+                title='Enter fullscreen',
+                title_cancel='Exit fullscreen',
+                force_separate_button=True
+            ).add_to(m)
             st_folium(m, width=None, height=600)
     
     with col2:
-        st.subheader("📋 Ergebnisse")
+        st.subheader(t('results_title'))
         
         if businesses:
             # Display business cards
@@ -414,21 +552,21 @@ def main():
                 """, unsafe_allow_html=True)
             
             if len(businesses) > 20:
-                st.info(f"+ {len(businesses) - 20} weitere Unternehmen auf der Karte")
+                st.info(t('more_businesses').format(count=len(businesses) - 20))
         else:
-            st.markdown("""
+            st.markdown(f"""
             <div style="text-align:center;padding:2rem;color:#666;">
                 <p style="font-size:3rem;">🔍</p>
-                <p>Nutzen Sie die Suchfilter links, um Unternehmen zu finden.</p>
+                <p>{t('search_prompt')}</p>
             </div>
             """, unsafe_allow_html=True)
     
     # Footer
     st.markdown("---")
-    st.markdown("""
+    st.markdown(f"""
     <div style="text-align:center;color:#666;padding:1rem;">
-        <p>Daten aus Gelbe Seiten | Karten von © OpenStreetMap</p>
-        <p style="font-size:0.85rem;">Berlin Business Finder v1.0</p>
+        <p>{t('footer_data')}</p>
+        <p style="font-size:0.85rem;">{t('footer_version')}</p>
     </div>
     """, unsafe_allow_html=True)
 
