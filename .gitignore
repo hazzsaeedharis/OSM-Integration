@@ -16,6 +16,7 @@ ENV/
 input/gsbestand-559.json
 input/gs_final.json
 backend/data/*.json
+input/gsbestand-559-sample.json
 
 # Database (optional - uncomment to exclude)
 # backend/data/*.db

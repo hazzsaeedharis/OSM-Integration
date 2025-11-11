@@ -1,0 +1,18 @@
+# FastAPI Backend Requirements
+
+# API Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# Database
+# sqlite3 is built-in to Python
+
+# CORS
+# Built into FastAPI
+
+# Data validation
+pydantic>=2.5.0
+
+# Optional: For production
+python-multipart>=0.0.6
+
