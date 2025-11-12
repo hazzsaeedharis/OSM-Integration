@@ -15,6 +15,8 @@ ENV/
 # Large data files (keep structure, exclude large files)
 input/gsbestand-559.json
 input/gs_final.json
+input/berlin_business_data.jsonl
+input/gsbestand-559-sample.json
 backend/data/*.json
 
 # Database (optional - uncomment to exclude)
