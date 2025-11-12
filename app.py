@@ -270,7 +270,8 @@ def search_businesses(search_term="", category="", city="", limit=100):
     cursor = conn.cursor()
     
     query = '''
-        SELECT id, name, postal_code, city, lat, lon, categories
+        SELECT id, name, postal_code, city, lat, lon, categories, 
+               street_address, district, phone, email, website
         FROM businesses
         WHERE lat IS NOT NULL
     '''
@@ -305,7 +306,12 @@ def search_businesses(search_term="", category="", city="", limit=100):
             'city': row[3],
             'lat': row[4],
             'lon': row[5],
-            'categories': json.loads(row[6]) if row[6] else []
+            'categories': json.loads(row[6]) if row[6] else [],
+            'street_address': row[7],
+            'district': row[8],
+            'phone': row[9],
+            'email': row[10],
+            'website': row[11]
         })
     
     return businesses
@@ -337,10 +343,20 @@ def create_map(businesses, center_lat=52.5200, center_lon=13.4050, zoom=11):
             for cat in business['categories'][:3]
         ])
         
-        # Enhanced popup with better styling
+        # Build full address
+        full_address = business.get('street_address', '')
+        district = business.get('district', '')
+        if full_address and district:
+            address_display = f"{full_address}, {business['postal_code']} {business['city']} ({district})"
+        elif full_address:
+            address_display = f"{full_address}, {business['postal_code']} {business['city']}"
+        else:
+            address_display = f"{business['postal_code']} {business['city']}"
+        
+        # Enhanced popup with all available data
         popup_html = f'''
-        <div style="width:280px;font-family:Arial,sans-serif;padding:8px;">
-            <h3 style="color:#333;margin:0 0 12px 0;font-size:16px;font-weight:700;border-bottom:2px solid #FFD700;padding-bottom:8px;">
+        <div style="width:320px;font-family:Arial,sans-serif;padding:10px;">
+            <h3 style="color:#333;margin:0 0 12px 0;font-size:17px;font-weight:700;border-bottom:2px solid #FFD700;padding-bottom:8px;">
                 {business['name']}
             </h3>
             
@@ -348,15 +364,41 @@ def create_map(businesses, center_lat=52.5200, center_lon=13.4050, zoom=11):
                 {categories_html}
             </div>
             
-            <div style="background:#f9f9f9;padding:10px;border-radius:8px;margin:10px 0;">
+            <div style="background:#f9f9f9;padding:12px;border-radius:8px;margin:10px 0;">
                 <p style="color:#666;font-size:13px;margin:4px 0;line-height:1.6;">
-                    <strong>📍 Location:</strong><br/>
-                    {business['postal_code']} {business['city']}
+                    <strong>📍 Address:</strong><br/>
+                    {address_display}
                 </p>
+                '''
+        
+        # Add phone if available
+        if business.get('phone'):
+            popup_html += f'''
                 <p style="color:#666;font-size:13px;margin:8px 0 4px 0;line-height:1.6;">
-                    <strong>🗺️ Coordinates:</strong><br/>
-                    {business['lat']:.6f}, {business['lon']:.6f}
+                    <strong>☎️ Phone:</strong><br/>
+                    <a href="tel:{business['phone']}" style="color:#2196F3;text-decoration:none;">{business['phone']}</a>
                 </p>
+            '''
+        
+        # Add email if available
+        if business.get('email'):
+            popup_html += f'''
+                <p style="color:#666;font-size:13px;margin:8px 0 4px 0;line-height:1.6;">
+                    <strong>📧 Email:</strong><br/>
+                    <a href="mailto:{business['email']}" style="color:#2196F3;text-decoration:none;">{business['email']}</a>
+                </p>
+            '''
+        
+        # Add website if available
+        if business.get('website'):
+            popup_html += f'''
+                <p style="color:#666;font-size:13px;margin:8px 0 4px 0;line-height:1.6;">
+                    <strong>🌐 Website:</strong><br/>
+                    <a href="{business['website']}" target="_blank" style="color:#2196F3;text-decoration:none;">{business['website']}</a>
+                </p>
+            '''
+        
+        popup_html += f'''
             </div>
             
             <div style="margin-top:12px;">
@@ -541,12 +583,20 @@ def main():
                     for cat in business['categories'][:3]
                 ])
                 
+                # Build address display
+                if business.get('street_address'):
+                    location_text = f"{business['street_address']}, {business['postal_code']} {business['city']}"
+                    if business.get('district'):
+                        location_text += f" ({business['district']})"
+                else:
+                    location_text = f"{business['postal_code']} {business['city']}"
+                
                 st.markdown(f"""
                 <div class="business-card">
                     <div class="business-name">{business['name']}</div>
                     <div>{categories_badges}</div>
                     <div class="business-location">
-                        📍 {business['postal_code']} {business['city']}
+                        📍 {location_text}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
